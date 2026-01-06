@@ -1,4 +1,6 @@
-// Read Docker container logs
+// -------------------------- logs ---------------------------------
+
+// read docker container logs
 local.file_match "service_logs" {
     path_targets = [{"__path__" = "/var/lib/docker/containers/*/*-json.log"}]
     sync_period  = "1s"
@@ -10,52 +12,37 @@ loki.source.file "docker_logs" {
 }
 
 loki.process "docker" {
-
+  // parse docker log (wraps original app log)
   stage.json {
     expressions = {
-      log = "",
-      stream = "",
-      time = "",
+      log = "" // stream + time not needed
     }
   }
 
-  // stage.timestamp {
-  //     source = "time"
-  //     format = "RFC3339" // RFC3339Nano
-  // }
-
+  // parse app log
   stage.json {
     source = "log"
     expressions = {
-      // ts      = "@timestamp",
-      level = "\"log.level\"",
-      logger = "\"log.logger\"",
+      timestamp = "\"@timestamp\"",
+      log_level = "\"log.level\"",
+      service_name = "\"service.name\"",
+      service_version = "\"service.version\"",
+      service_environment = "\"service.environment\"",
       message = "message",
-      servicename = "\"service.name\"",
-      serviceversion = "\"service.version\"",
-      env = "\"service.environment\"",
-      containerid = "container_id",
     }
   }
 
-  // stage.drop {
-  //   source = "stream"
-  // }
-  // stage.drop {
-  //   source = "time"
-  // }
-  // stage.drop {
-  //   source = "log"
-  // }
+  stage.timestamp {
+      source = "timestamp"
+      format = "RFC3339"
+  }
 
   stage.labels {
     values = {
-      servicename = "",
-      serviceversion = "",
-      env = "",
-      level = "",
-      logger = "",
-      containerid = "",
+      service_name = "",
+      service_version = "",
+      service_environment = "",
+      log_level = "",
     }
   }
 
@@ -66,27 +53,22 @@ loki.process "docker" {
   forward_to = [loki.write.loki.receiver]
 }
 
-
-
-
-// Send logs to Loki
+// send logs to loki
 loki.write "loki" {
   endpoint {
     url = "http://loki:3100/loki/api/v1/push"
   }
 }
 
-// Scrape Spring Boot metrics
+// -------------------------- metrics ---------------------------------
+
+// scrape spring boot metrics
 prometheus.scrape "lumen" {
-  targets = [
-    {
-      __address__ = "lumen:8080",
-    },
-  ]
+  targets = [{"__address__" = "lumen:8080"}]
   forward_to = [prometheus.remote_write.prom.receiver]
 }
 
-// Optional: forward metrics to Prometheus remote_write
+// forward metrics to Prometheus remote_write
 prometheus.remote_write "prom" {
   endpoint {
     url = "http://prometheus:9090/api/v1/write"

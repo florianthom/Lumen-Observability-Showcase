@@ -138,3 +138,5 @@ http://localhost:9090/query?g0.expr=jvm_memory_used_bytes&g0.show_tree=0&g0.tab=
 http://localhost:3100/loki/api/v1/query_range?query={servicename=%22lumen%22}
 
 backslash bei label notwendig in alloy
+
+docker compose down && docker compose up -d

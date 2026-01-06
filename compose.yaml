@@ -2,8 +2,6 @@ services:
   lumen:
     build: .
     container_name: lumen
-    labels:
-      app: lumen
     ports:
       - "8081:8080"
     environment:
@@ -12,10 +10,6 @@ services:
       OTEL_SERVICE_NAME: "lumen"
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
       OTEL_TRACES_EXPORTER: "otlp"
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/actuator/health"]
-      interval: 2s
-      retries: 10
 
   prometheus:
     image: prom/prometheus:v3.8.1
@@ -41,23 +35,21 @@ services:
   alloy:
     image: grafana/alloy:v1.12.1
     container_name: alloy
-    user: root
     volumes:
       - ./obs-stack-config/alloy-config.alloy:/etc/alloy/config.alloy
-      # following does not work since docker runs inside vm (colima here)
-      # - /Users/florianthom/.colima/default/docker.sock:/var/run/docker.sock
-      # - /var/run/docker.sock:/var/run/docker.sock
+      # does work since docker runs inside vm (colima here)
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
-    depends_on:
-      lumen:
-        condition: service_healthy
 
   grafana:
     image: grafana/grafana:12.3.1
     container_name: grafana
+    ports:
+      - "3000:3000"
     environment:
       - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
-    ports:
-      - "3000:3000"
+      - GF_USERS_DEFAULT_THEME=light
+    volumes:
+      - ./obs-stack-config/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/grafana-datasources.yaml
+
