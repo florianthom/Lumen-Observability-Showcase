@@ -1,0 +1,94 @@
+// Read Docker container logs
+local.file_match "service_logs" {
+    path_targets = [{"__path__" = "/var/lib/docker/containers/*/*-json.log"}]
+    sync_period  = "1s"
+}
+
+loki.source.file "docker_logs" {
+  targets = local.file_match.service_logs.targets
+  forward_to = [loki.process.docker.receiver]
+}
+
+loki.process "docker" {
+
+  stage.json {
+    expressions = {
+      log = "",
+      stream = "",
+      time = "",
+    }
+  }
+
+  // stage.timestamp {
+  //     source = "time"
+  //     format = "RFC3339" // RFC3339Nano
+  // }
+
+  stage.json {
+    source = "log"
+    expressions = {
+      // ts      = "@timestamp",
+      level = "\"log.level\"",
+      logger = "\"log.logger\"",
+      message = "message",
+      servicename = "\"service.name\"",
+      serviceversion = "\"service.version\"",
+      env = "\"service.environment\"",
+      containerid = "container_id",
+    }
+  }
+
+  // stage.drop {
+  //   source = "stream"
+  // }
+  // stage.drop {
+  //   source = "time"
+  // }
+  // stage.drop {
+  //   source = "log"
+  // }
+
+  stage.labels {
+    values = {
+      servicename = "",
+      serviceversion = "",
+      env = "",
+      level = "",
+      logger = "",
+      containerid = "",
+    }
+  }
+
+  stage.output {
+    source = "log"
+  }
+
+  forward_to = [loki.write.loki.receiver]
+}
+
+
+
+
+// Send logs to Loki
+loki.write "loki" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}
+
+// Scrape Spring Boot metrics
+prometheus.scrape "lumen" {
+  targets = [
+    {
+      __address__ = "lumen:8080",
+    },
+  ]
+  forward_to = [prometheus.remote_write.prom.receiver]
+}
+
+// Optional: forward metrics to Prometheus remote_write
+prometheus.remote_write "prom" {
+  endpoint {
+    url = "http://prometheus:9090/api/v1/write"
+  }
+}

@@ -1,3 +1,19 @@
 spring:
   application:
-    name: lumen
+    name: "lumen"
+
+logging:
+  log4j2:
+    configOverride:
+      Properties:
+        property:
+          service.name: ${spring.application.name}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  metrics:
+    tags:
+      application: "lumen"

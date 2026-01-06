@@ -9,5 +9,4 @@ public class LumenApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(LumenApplication.class, args);
 	}
-
 }
