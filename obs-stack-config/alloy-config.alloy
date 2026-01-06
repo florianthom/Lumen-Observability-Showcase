@@ -15,7 +15,7 @@ loki.process "docker" {
   // parse docker log (wraps original app log)
   stage.json {
     expressions = {
-      log = "" // stream + time not needed
+      log = "", // stream + time not needed
     }
   }
 
