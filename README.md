@@ -190,8 +190,7 @@ Beispiele für events (types):
 - secrutiy.login.error
 
 
-## Governance & Compliance (RULES)
-### Governance & Compliance: Relevante Standards & Gesetze
+## Governance & Compliance Relevante Standards & Gesetze
 - ISO 27001: A.8.15 / A.8.16
 - ISO 27002: Kapitel 8.15 – Logging
 - NIS-2: Art. 21
