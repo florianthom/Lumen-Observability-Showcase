@@ -42,8 +42,7 @@ Ein einheitliches, governance-konformes Observability-Setup für Logs, Metriken 
 - Query-driven Design (Logs werden so entworfen, dass sinnvolle Queries möglich sind)
 - Validierbar gegen Schema
 
-
-## Structed Logging
+### Structed Logging
 - "Structured logging is the same as wide events"
 - No. Structured logging means your logs are JSON instead of strings. That's table stakes. Wide events are a philosophy: one comprehensive event per request, with all context attached. You can have structured logs that are still useless (5 fields, no user context, scattered across 20 log lines).
 - Structured Logging: Logs emitted as key-value pairs (usually JSON) instead of plain strings. {"event": "payment_failed", "user_id": "123"} instead of "Payment failed for user 123". Structured logging is necessary but not sufficient.
