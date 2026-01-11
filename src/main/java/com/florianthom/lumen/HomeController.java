@@ -2,6 +2,7 @@ package com.florianthom.lumen;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -14,6 +15,8 @@ public class HomeController {
     @GetMapping("")
     public ResponseEntity<String> index() {
         logger.error("my error");
+        logger.makeLoggingEventBuilder(Level.ERROR).addKeyValue("testkey", "testvalue").log("log message1");
+        logger.atError().addKeyValue("error key", "error value").log("log message2");
         return ResponseEntity.ok("<h1>ping1</h1>");
     }
 }
