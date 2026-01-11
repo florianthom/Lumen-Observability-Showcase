@@ -42,16 +42,15 @@ Ein einheitliches, governance-konformes Observability-Setup für Logs, Metriken 
 - Query-driven Design (Logs werden so entworfen, dass sinnvolle Queries möglich sind)
 - Validierbar gegen Schema
 
-## Structed Logging
 
-### what is structured logging / wide events bzw -logs / canonical logs
+## Structed Logging
 - "Structured logging is the same as wide events"
 - No. Structured logging means your logs are JSON instead of strings. That's table stakes. Wide events are a philosophy: one comprehensive event per request, with all context attached. You can have structured logs that are still useless (5 fields, no user context, scattered across 20 log lines).
 - Structured Logging: Logs emitted as key-value pairs (usually JSON) instead of plain strings. {"event": "payment_failed", "user_id": "123"} instead of "Payment failed for user 123". Structured logging is necessary but not sufficient.
 - canonical log = fully represents one request. This example is also called a wide event because it describes one significant event with many fields.
 - Structured logging (JSON) enables efficient searching and analysis. Use consistent field names across services.
 
-### warum einheitlich structured logging
+### Warum einheitlich structured logging
 - Why String Search is Broken: The fundamental problem: logs are optimized for writing, not for querying.
 - machine readable: filterbar
 - indexing
@@ -65,7 +64,8 @@ Ein einheitliches, governance-konformes Observability-Setup für Logs, Metriken 
 - String Concatenation Instead of Fields: You can't easily query/filter "all purchases over $100" because the amount is buried in a string.
 
 
-## Log-Aufbau & Feldkonventionen
+## Log-Aufbau, Log-Datenmodell und Konventionen
+Logs sind Events (keine Debug-Ausgaben)
 
 ### Trennung: Message vs. strukturierte Felder
 Menschen sollen nicht in Key/Value-Feldern nach Bedeutung suchen. Maschinen sollen nicht Strings parsen müssen. Aus diesem Grund wird strukturiert gelogged in dem weiterhin ein Feld "message" existiert neben den tatsächlichen Key-Value-Paaren.
@@ -76,84 +76,6 @@ Menschen sollen nicht in Key/Value-Feldern nach Bedeutung suchen. Maschinen soll
 Referenz:
 - https://github.com/uber-go/zap/blob/master/FAQ.md#why-do-the-structured-logging-apis-take-a-message-in-addition-to-fields
 - https://www.reddit.com/r/golang/comments/1kcmdy7/comment/mq43jto/
-
-### Beispiele für strukturuiertes Logging
-
-Beispiel 1
-```
-{
-    "message": "Invoice deleted",
-    "event": {
-        "action": "inovice.delete"
-    },
-    "invoice": {
-        "id": 5
-    }
-}
-```
-
-Beispiel 2
-```
-{
-    "timestamp": "2024-09-18T12:00:00Z",
-    "level": "INFO",
-    "message": "User login successful",
-    "user_id": "123456",
-    "session_id": "abcde12345"
-}
-```
-
-- Dynamische Daten nicht im Message-String
-- Bessere Filterbarkeit:
-  - event.action=delete
-  - invoice.id=5
-
-
-### Namespaces & Reservierte Bereiche
-Es existieren übergreifende gemeinsame Logging-Scenarien. Dazu zählen folgende:
-
-- Request and Response Data:
-  - What: Log incoming requests and outgoing responses, including headers and payloads.
-  - Why: Debugging & Flow-Verständnis. This helps in tracking down issues related to API calls and understanding how data flows through your system.
-
-- System Events:
-  - What: Log events like service starts/stops, configuration changes, or deployments.
-  - Why: Keeping track of system events helps in understanding the state of your application at any given time and can aid in post-mortem analysis after incidents.
-
-- security:
-  what: Log authentication attempts, access control violations, and other security-related actions.
-  why: security logs are crucial for detecting unauthorized access attempts and ensuring compliance with security policies.
-
-Diese Szenarien begründen `Namespaces` für logs events (-types). Diese werden folgend definiert.
-
-### Reservierte Event-Namespaces
-- system
-- job
-- security (auth)
-- http
-- db (inkl. migration)
-- messaging
-- camunda
-- validation
-- other (Business-spezifisch)
-
-Beispiele für events (types):
-- invoice.create.success
-- invoice.validated
-- system.login
-- system.startup
-- system.shutdown
-- secrutiy.login.error
-
-### Log-Kategorien & Hierarchie (Java)
-Logger-Namen sind hierarchisch z.B. "com.daysofwonder.ranking.ELORankingComputation"
-
-Vorteile:
-- Filter nach Subsystemen
-- Alerting auf Namespace-Ebene
-
-## Log-Datenmodell
-Logs sind Events (keine Debug-Ausgaben)
 
 ### ECS
 Es wird sich an ECS orientiert. ECS beinhaltet Log-Struktur mit empfohlene Feldnamen und defaults.
@@ -201,35 +123,72 @@ Unklarheit explizit festgehalten:
 - Event beschreibt was passiert ist
 - Error Type beschreibt warum es fehlgeschlagen ist (? brauch man das überhaupt - liest man das nicht aus dem event+stacktrace aus - sonst müsste man den error doch direkt klassifizieren zusätzlich zum event oder)
 
-## Log-Katalog / Event-Katalog
-Log-Katalog (legacy) / Event-Katalog (State of the Art)
-service-übergreifende Dokumentation aller existierenden Events , Zweck:
-- Governance
-- Konsistenz über Teams
-- Audits
-- Alert-Definitionen
 
-unterscheidung von log catalogen und dashbaord implizit in SIEM-, SRE- und Audit-Prozessen angelehnt:
+### Beispiele für strukturuiertes Logging
 
-- L1 – Governed Events (Catalog Level)
-  - Stabil, Versioniert
-  - Alertfähig
-  - Auditiert
-  - Schema-validiert
-  - Beispiel: security.login.failed
+Beispiel 1: 
+```
+{
+    "message": "Invoice deleted",
+    "event": {
+        "action": "inovice.delete"
+    },
+    "invoice": {
+        "id": 5
+    }
+}
+```
 
-- L2 – Observational Events + L3 - Explorative Logs
-  - Nicht versioniert, Temporäre Dashboards erlaubt, Keine harten SLAs, kein Audit-Zwang
-  - Entwicklergetrieben, Debug / Investigation, Keine Alerts, Keine Stabilitätsgarantie, Kann jederzeit verschwinden
+Beispiel 2
+```
+{
+    "timestamp": "2024-09-18T12:00:00Z",
+    "level": "INFO",
+    "message": "User login successful",
+    "user_id": "123456",
+    "session_id": "abcde12345"
+}
+```
 
-### Unterschiede zwischen Event Catalog und Log Catalog
-|             | Event Catalog                     | Log Catalog        |
-| ----------- | --------------------------------- | ------------------ |
-| Fokus       | Fachliche & technische Ereignisse | Konkrete Logzeilen |
-| Abstraktion | Hoch                              | Niedrig            |
-| Stabilität  | Hoch                              | Mittel             |
-| Governance  | Ja                                | Optional           |
-| Audits      | Sehr gut                          | Mittel             |
+- Dynamische Daten nicht im Message-String
+- Bessere Filterbarkeit:
+  - event.action=delete
+  - invoice.id=5
+
+### Namespaces & Reservierte Bereiche
+Es existieren übergreifende gemeinsame Logging-Scenarien. Dazu zählen folgende:
+
+- Request and Response Data:
+  - What: Log incoming requests and outgoing responses, including headers and payloads.
+  - Why: Debugging & Flow-Verständnis. This helps in tracking down issues related to API calls and understanding how data flows through your system.
+
+- System Events:
+  - What: Log events like service starts/stops, configuration changes, or deployments.
+  - Why: Keeping track of system events helps in understanding the state of your application at any given time and can aid in post-mortem analysis after incidents.
+
+- security:
+  what: Log authentication attempts, access control violations, and other security-related actions.
+  why: security logs are crucial for detecting unauthorized access attempts and ensuring compliance with security policies.
+
+Diese Szenarien begründen `Namespaces` für logs events (-types). Diese werden folgend definiert.
+
+- system
+- job
+- security (auth)
+- http
+- db (inkl. migration)
+- messaging
+- camunda
+- validation
+- other (Business-spezifisch)
+
+Beispiele für events (types):
+- invoice.create.success
+- invoice.validated
+- system.login
+- system.startup
+- system.shutdown
+- secrutiy.login.error
 
 
 ## Governance & Compliance (RULES)
@@ -256,6 +215,36 @@ Deutschland:
 
 
 ## Technische Umsetzung
+
+### Log-Katalog / Event-Katalog
+Log-Katalog (legacy) / Event-Katalog (State of the Art)
+service-übergreifende Dokumentation aller existierenden Events , Zweck:
+- Governance
+- Konsistenz über Teams
+- Audits
+- Alert-Definitionen
+
+unterscheidung von log catalogen und dashbaord implizit in SIEM-, SRE- und Audit-Prozessen angelehnt:
+
+- L1 – Governed Events (Catalog Level)
+    - Stabil, Versioniert
+    - Alertfähig
+    - Auditiert
+    - Schema-validiert
+    - Beispiel: security.login.failed
+
+- L2 – Observational Events + L3 - Explorative Logs
+    - Nicht versioniert, Temporäre Dashboards erlaubt, Keine harten SLAs, kein Audit-Zwang
+    - Entwicklergetrieben, Debug / Investigation, Keine Alerts, Keine Stabilitätsgarantie, Kann jederzeit verschwinden
+
+### Unterschiede zwischen Event Catalog und Log Catalog
+|             | Event Catalog                     | Log Catalog        |
+| ----------- | --------------------------------- | ------------------ |
+| Fokus       | Fachliche & technische Ereignisse | Konkrete Logzeilen |
+| Abstraktion | Hoch                              | Niedrig            |
+| Stabilität  | Hoch                              | Mittel             |
+| Governance  | Ja                                | Optional           |
+| Audits      | Sehr gut                          | Mittel             |
 
 ### MDC (Java)
 - Sofern möglich auf sl4j v2+ Fluent-Api setzen statt MDC
