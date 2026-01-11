@@ -22,17 +22,7 @@ mehr und mehr von monitoring (logs, metriken) zu observablity (traces)
 
 im besten fall sollte fehler aus traces > monitoring > logs ersichtlich werden
 
-übergeordnete Struktur
-A. Logging-Philosophie & Ziele (WHY)
-B. Log-Datenmodell (WHAT)
-C. Governance & Compliance (RULES)
-D. Technische Umsetzung (HOW)
-E. Observability Plattform (WHERE)
-F. Betrieb & Nutzung (OPERATE)
-
-
 ###  Ziel / Anforderungen
-
 Ein einheitliches, governance-konformes Observability-Setup für Logs, Metriken und Traces hat folgende Anforderungen:
 
 - maschinenlesbar (Filter, Queries, Alerts, SIEM)
@@ -46,15 +36,13 @@ Ein einheitliches, governance-konformes Observability-Setup für Logs, Metriken 
 
 - Structured Logging (JSON)
 - Keine String-Konkatenation für dynamische Daten
-- Logs sind Events (keine Debug-Ausgaben)
-- Ein Event = eine logische Aussage
+- Logs sind Events (keine Debug-Ausgaben), Event = eine logische Aussage
 - Einheitliche Feldnamen
-- Dot-Syntax als Standard
+- Dot-Syntax als Standard (flattened keys d.h. keine beliebigen Deep-Nesting-Strukturen))
 - Query-driven Design (Logs werden so entworfen, dass sinnvolle Queries möglich sind)
 - Validierbar gegen Schema
 
 ## Structed Logging
-
 
 ### what is structured logging / wide events bzw -logs / canonical logs
 - "Structured logging is the same as wide events"
@@ -62,8 +50,6 @@ Ein einheitliches, governance-konformes Observability-Setup für Logs, Metriken 
 - Structured Logging: Logs emitted as key-value pairs (usually JSON) instead of plain strings. {"event": "payment_failed", "user_id": "123"} instead of "Payment failed for user 123". Structured logging is necessary but not sufficient.
 - canonical log = fully represents one request. This example is also called a wide event because it describes one significant event with many fields.
 - Structured logging (JSON) enables efficient searching and analysis. Use consistent field names across services.
-
-- https://www.honeycomb.io/blog/engineers-checklist-logging-best-practices
 
 ### warum einheitlich structured logging
 - Why String Search is Broken: The fundamental problem: logs are optimized for writing, not for querying.
@@ -123,7 +109,7 @@ Beispiel 2
   - invoice.id=5
 
 
-## Namespaces & Reservierte Bereiche
+### Namespaces & Reservierte Bereiche
 Es existieren übergreifende gemeinsame Logging-Scenarien. Dazu zählen folgende:
 
 - Request and Response Data:
@@ -166,38 +152,8 @@ Vorteile:
 - Filter nach Subsystemen
 - Alerting auf Namespace-Ebene
 
-## Logging-Ebenen & Governance-Modell
-### L1 / L2 / L3 Modell
-- L1 (Catalog): Definierte Events, Dashboards & Alerts nur hier
-- L2
-- L3 (free2use)
-
-### Governance & Compliance: Relevante Standards & Gesetze
-- ISO 27001: A.8.15 / A.8.16
-- ISO 27002: Kapitel 8.15 – Logging
-- NIS-2: Art. 21
-- ENISA & EU-Empfehlungen (NIS-2-nah)
-- CRA
-- ISMS
-- SDLC
-- SIEM-Zwang
-- Kein 24/7 SOC-Zwang
-
-Zitat-/Audit-Fragen:
-- „Wie analysieren Sie die Auswirkungen?“: Log- + Trace-Korrelation
-- „Wie erfüllen Sie Art. 21 NIS-2 ohne diese Information?“
-
-Deutschland:
-- NIS2UmsuCG
-- BSI-Gesetz
-- BSI-Leitlinien / Orientierungshilfen
-- BSI-Grundschutz (OPS.1.1.5, OPS.1.2.5)
-
-
-## Log-Modell
+## Log-Datenmodell
 Logs sind Events (keine Debug-Ausgaben)
-
-
 
 ### ECS
 Es wird sich an ECS orientiert. ECS beinhaltet Log-Struktur mit empfohlene Feldnamen und defaults.
@@ -211,11 +167,6 @@ Beispiel:
 | HTTP Method | `http.method`      | `verb`            |
 | Duration    | `duration_ms`      | `time`, `elapsed` |
 | Error Type  | `error.type`       | `errorKind`       |
-
-### MDC (Java)
-- Sofern möglich auf sl4j v2+ Fluent-Api setzen statt MDC
-- oft für technische / Infrastruktur-Daten z.B. span_id, Request-ID, Correlation-ID, Tenant-ID
-- Seltener für Business-Daten
 
 ### Eingrenzung auf ausgewählte Felder
 Folgend findet eine Eingrenzung der Felder statt. Dabei wird unterschieden in Standard fields, Context fields und Domain specific fields.
@@ -244,9 +195,6 @@ event.outcome = Wie ging es aus
 > Substantiv → event.type
 Verb → event.action
 Adjektiv → event.outcome
-
-
-
 
 ### Event-Typ vs. Error-Typ
 Unklarheit explizit festgehalten:
@@ -284,6 +232,37 @@ unterscheidung von log catalogen und dashbaord implizit in SIEM-, SRE- und Audit
 | Audits      | Sehr gut                          | Mittel             |
 
 
+## Governance & Compliance (RULES)
+### Governance & Compliance: Relevante Standards & Gesetze
+- ISO 27001: A.8.15 / A.8.16
+- ISO 27002: Kapitel 8.15 – Logging
+- NIS-2: Art. 21
+- ENISA & EU-Empfehlungen (NIS-2-nah)
+- CRA
+- ISMS
+- SDLC
+- SIEM-Zwang
+- Kein 24/7 SOC-Zwang
+
+Zitat-/Audit-Fragen:
+- „Wie analysieren Sie die Auswirkungen?“: Log- + Trace-Korrelation
+- „Wie erfüllen Sie Art. 21 NIS-2 ohne diese Information?“
+
+Deutschland:
+- NIS2UmsuCG
+- BSI-Gesetz
+- BSI-Leitlinien / Orientierungshilfen
+- BSI-Grundschutz (OPS.1.1.5, OPS.1.2.5)
+
+
+## Technische Umsetzung
+
+### MDC (Java)
+- Sofern möglich auf sl4j v2+ Fluent-Api setzen statt MDC
+- oft für technische / Infrastruktur-Daten z.B. span_id, Request-ID, Correlation-ID, Tenant-ID
+- Seltener für Business-Daten
+
+
 ## Tracing vs. Business Correlation
 Dürfen nicht verwechselt werden oder das eine für das andere instrumentatlisiert werden
 
@@ -296,9 +275,9 @@ Dürfen nicht verwechselt werden oder das eine für das andere instrumentatlisie
 Tracing ID: Technical debugging, performance analysis, understanding call chains
 Business correlation ID: Logical connection between business entities or flows
 
-## Observability Stack
+## Observability Plattform
 
-### Komponenten
+### Observability Stack
 - Grafana Alloy: Unified Observability Collector
 - Prometheus: Metrics DB & Scraper
 - Loki: Log Aggregation
@@ -315,7 +294,7 @@ Business correlation ID: Logical connection between business entities or flows
   - Alloy: Kubernetes Metadata, Host Metadata, Timestamps  (Wenn App bereits korrekten ECS-Timestamp loggt nicht überschreiben), Trace/Span IDs
 
 
-## OpenTelemetry Integration
+### OpenTelemetry Integration
 Folgend werden die Varianten sortiert nach Empfehlung (absteigend) dargestellt.
 Besonders bei selbst gehosteten extern-entwickelten Services wird die eigene otel integration schwierig weshalb besonders die letzte option wenig trägt.
 
@@ -339,13 +318,13 @@ Besonders bei selbst gehosteten extern-entwickelten Services wird die eigene ote
   - Nur Dev / PoC
 
 
-## Tooling & Sonstiges
+### Tooling & Sonstiges
 - Eigene Logger-Klasse (z. B. ValidatedLogger): Log-Validierung gegen Schema
 - SLF4J / Log4j2 Setup: `log4j-slf4j2-impl:2.25.3`, `slf4j-api:2.0.17` (bietet fluent-api)
 - Deployment Grafana Alloy: 1 DaemonSet instance per Kubernetes node (90% of cases)
 - Use metrics, traces, and logs properly, and don't try to use one for another
 - Eigene Logger klasse abgeleitet von base logger oder base logger als composition/field (siehe nemorize link)
-- Always string or numbers (ggf. flattened keys) - rarly nested object: besser: ECS-kompatible, flach indexierte Objekte mit semantischer Gruppierung (Dot-Notation, keine beliebigen Deep-Nesting-Strukturen)
+
 
 ## Referenzen & Links
 - Grafana Alloy:
@@ -364,3 +343,4 @@ Besonders bei selbst gehosteten extern-entwickelten Services wird die eigene ote
   - https://grafana.com/grot/
 - Strukturiertes Logging aus Developer-Sicht
   - https://www.reddit.com/r/golang/comments/1kcmdy7/comment/mq43jto/?utm_source=share&utm_medium=web3x&utm_name=web3xcss&utm_term=1&utm_content=share_button
+- https://www.honeycomb.io/blog/engineers-checklist-logging-best-practices
