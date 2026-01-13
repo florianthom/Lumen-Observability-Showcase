@@ -11,12 +11,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class HomeController {
 
     private Logger logger = LoggerFactory.getLogger(HomeController.class);
+    private final LumenLogger llogger = new LumenLogger(HomeController.class);
 
     @GetMapping("")
     public ResponseEntity<String> index() {
         logger.error("my error");
         logger.makeLoggingEventBuilder(Level.ERROR).addKeyValue("testkey", "testvalue").log("log message1");
         logger.atError().addKeyValue("error key", "error value").log("log message2");
+        llogger.validated("myInvoiceId");
         return ResponseEntity.ok("<h1>ping1</h1>");
     }
 }
