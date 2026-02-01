@@ -1,5 +1,8 @@
 package com.florianthom.lumen;
 
+import com.florianthom.lumen.logger.LumenLoggerFactory;
+import com.florianthom.lumen.logger.LumenStructuredLogger;
+import com.florianthom.lumen.logger.LumenUnstructuredLogger;
 import com.florianthom.petstore.javaClient.api.PetApi;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,7 +14,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController("/")
 public class HomeController {
     private Logger logger = LoggerFactory.getLogger(HomeController.class);
-    private final LumenLogger llogger = new LumenLogger(HomeController.class);
+    private final LumenUnstructuredLogger uLogger = new LumenLoggerFactory().getUnstructuredLogger(HomeController.class);
+    private final LumenStructuredLogger sLogger = new LumenLoggerFactory().getStructuredLogger(HomeController.class);
     private final PetApi petApi;
 
     public HomeController(PetApi petApi) {
@@ -20,10 +24,8 @@ public class HomeController {
 
     @GetMapping("")
     public ResponseEntity<String> index() {
-        logger.error("my error");
-        logger.makeLoggingEventBuilder(Level.ERROR).addKeyValue("testkey", "testvalue").log("log message1");
-        logger.atError().addKeyValue("error key", "error value").log("log message2");
-        llogger.validated("myInvoiceId");
+        uLogger.validated("index");
+        sLogger.validated("myInvoiceId");
         return ResponseEntity.ok("<h1>ping1</h1>");
     }
 
